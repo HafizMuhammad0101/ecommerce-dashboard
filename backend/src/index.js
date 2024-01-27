@@ -12,9 +12,28 @@ app.use(cors());
 
 
 app.post("/register", async (req, res) => {
-    const user = new User(req.body);
-    const saveData = await user.save();
-    res.send(saveData);
+    try {
+        const user = new User(req.body);//assigning request body to User Model
+        let saveData = await user.save();//saving record in database using .save() method
+        saveData = saveData.toObject();//converting json into object in order to delete password as it is already stored in DB and now no need of it to send in res.send();
+        delete saveData.password;//deleted password field from response, "not" from DB.
+        res.send(saveData);
+    } catch (err) {
+        console.log(err);
+    }
+})
+
+app.post("/login", async (req, res) => {
+    if (req.body.email && req.body.password) {//checking if user is sending both email and password
+        const user = await User.findOne(req.body).select("-password");//find user and remove his password before sending it to response object. CAUTION: Do remember that nothing is removed from DB,its all happening in res.obj 
+        if (user) {
+            res.send(user);
+        } else {
+            res.send({ result: "User not found" });
+        }
+    } else {
+        res.send({ result: "User not found" });
+    }
 })
 
 app.listen(PORT, () => {
